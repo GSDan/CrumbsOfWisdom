@@ -16,6 +16,6 @@ A simple REST service, built using Sails. Used to add and retrieve both new audi
 
 * __/Advice__ Get all advice responses logged on the server
 * __/Advice/upload__ Add a new response
-  * Must attach an image file under a "image" field
+  * Must attach an image file under an "image" field
 
-* __/Files/Download/#FD__ Retrieve a file with this file descriptor
+* __/File/Download/?fd=FD__ Retrieve a file with this file descriptor
