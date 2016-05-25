@@ -23,7 +23,8 @@
     "sails": "~0.12.3",
     "sails-disk": "~0.10.9",
     "sails-mongo": "^0.12.0",
-    "mkdirp": "0.5.1"
+    "mkdirp": "0.5.1",
+    "skipper-disk" : "0.5.4"
   },
   "scripts": {
     "debug": "node debug app.js",

@@ -16,13 +16,13 @@
 	 	var assetsDir = process.cwd() + '/assets/';
 	 	var fileD = assetsDir + req.param("fd");
 
-	 	console.log("Request to download " + fileD)
+	 	console.log("Request to download " + req.param("fd"))
 
 	    var SkipperDisk = require('skipper-disk');
 	    var fileAdapter = SkipperDisk(/* optional opts */);
 
 	    // Stream the file down
-	    fileAdapter.read(req.param("fd")).on('error', function (err){
+	    fileAdapter.read(fileD).on('error', function (err){
 	    	return res.serverError(err);
 	    })
 	    .pipe(res);
