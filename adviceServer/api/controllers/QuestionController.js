@@ -13,7 +13,8 @@ module.exports = {
 	upload: function (req, res) {
 
 		var mkdirp = require('mkdirp');
-		var saveDir = process.cwd() + '/assets/questions';
+		var assetsDir = process.cwd() + '/assets/';
+		var saveDir = assetsDir + 'questions';
 
 		mkdirp(saveDir, function(err) { 
 
@@ -33,15 +34,17 @@ module.exports = {
 					return res.badRequest('No file was uploaded');
 				}
 		
+				var fileAdd = uploadedFiles[0].fd.replace(assetsDir, "");
+
 				Question.create({
 
-					filename : uploadedFiles[0].fd
+					filename : fileAdd
 
 				}).exec(function (err){
 
 				  	if (err) return res.negotiate(err);
 				  	result = {
-			    		"fd" : uploadedFiles[0].fd
+			    		"fd" : fileAdd
 			    	}
 
 			    	return res.json(result);

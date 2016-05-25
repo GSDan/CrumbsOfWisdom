@@ -13,7 +13,10 @@
 	 		fd: 'string'
 	 	});
 
-	 	console.log("Request to download " + req.param("fd"))
+	 	var assetsDir = process.cwd() + '/assets/';
+	 	var fileD = assetsDir + req.param("fd");
+
+	 	console.log("Request to download " + fileD)
 
 	    var SkipperDisk = require('skipper-disk');
 	    var fileAdapter = SkipperDisk(/* optional opts */);
