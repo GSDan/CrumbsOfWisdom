@@ -19,9 +19,7 @@ module.exports = {
 			required: true,
 			unique : true
 		}
-
-
-		//I am a smelly poo
+		
 	}
 };
 
