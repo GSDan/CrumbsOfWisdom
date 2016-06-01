@@ -5,15 +5,17 @@ import requests
 import threading
 import subprocess
 import RPi.GPIO as GPIO
-from time import sleep
+from time import sleep, time
 
 # GPIO pins
-gBut = 7	# button 
-gLed = 10	# LED
+gLight = 16 # Light sensor
 
 downloadsFolder = "./QuestionFiles"
 serverAddress = "http://46.101.42.140:1337/"
 pollIntervalMinutes = 5
+
+currentLightLevel = 0;
+closedLightLevel = 100;
 
 # Checks for new questions on the server
 # If a question doesn't exist locally, download it
@@ -54,35 +56,69 @@ def RefreshQuestions():
 
 		sleep(60 * pollIntervalMinutes)
 
+# Checks the current light level and reports the average
+# readings over a second long window. 
+# RUN ON A SEPARATE THREAD
+def CheckLightLevels():
+	global currentLightLevel
+
+	window = [0,0,0,0,0] # 1 second window
+	lastReading = 0
+	try:
+		GPIO.setmode(GPIO.BOARD)
+
+		while True:
+
+			# Ground the pin to empty the capacitor
+			GPIO.setup(gLight, GPIO.OUT)
+			GPIO.output(gLight, GPIO.LOW)
+			sleep(0.2)
+	
+			# Set as an input
+			GPIO.setup(gLight, GPIO.IN)	
+
+			startTime = time()	
+			while GPIO.input(gLight) == GPIO.LOW: pass
+			elapsed = int((time() - startTime) * 1000000)	
+		
+			# Add data to rolling window
+			window.append(elapsed)
+			del window[0]
+
+			# Rest of the program is given the window's average
+			currentLightLevel = (sum(window) / float(len(window)))
+			
+	finally:
+		GPIO.cleanup()
+
 try:
 	# Check the server on a separate thread
-	serverPollThread = threading.Thread(name="steam", target=RefreshQuestions)
+	serverPollThread = threading.Thread(name="biscuitServer", target=RefreshQuestions)
 	serverPollThread.setDaemon(True)
-
 	serverPollThread.start()
 
-	# initialising GPIO + pins + states
-	GPIO.setmode(GPIO.BOARD)
-	GPIO.setup(gBut, GPIO.IN, GPIO.PUD_UP)
-	#GPIO.setup(gLed, GPIO.OUT)
-	butState = 1
-	ledState = False
+	# Measure the light level on a separate thread
+	lightLevelThread = threading.Thread(name="biscuitLight", target=CheckLightLevels)
+	lightLevelThread.setDaemon(True)
+	lightLevelThread.start()
+	
+	# If the light level shows the box is open, play an audio message
+	# Only play the message again after the box has been closed
+	hasPlayed = False
 	
 	while True:
-		but = GPIO.input(gBut)
-		if but != butState:
-			if but == 0:
-				# if button is pressed and there are audio files to play
-				if os.listdir(downloadsFolder):
-					thisQ = random.choice(os.listdir(downloadsFolder))
-					localPath = os.path.join(downloadsFolder, thisQ)
-					subprocess.call(['mplayer', localPath])
+		sleep(2)
 
-				else:
-					print "No files to play"
+		tinOpen = (currentLightLevel > closedLightLevel)
 
-		butState = but
-		sleep(0.1)
+		if not tinOpen:
+			hasPlayed = False
+
+		if tinOpen and not hasPlayed and os.listdir(downloadsFolder):
+			hasPlayed = True
+			thisQ = random.choice(os.listdir(downloadsFolder))
+			localPath = os.path.join(downloadsFolder, thisQ)
+			subprocess.call(['mplayer', localPath])
 	
 finally:
-	GPIO.cleanup
+	print "Finish"
