@@ -1,4 +1,5 @@
 import os
+import random
 import errno
 import requests
 import threading
@@ -21,7 +22,7 @@ def RefreshAdvice():
 		    raise
 
     while True:
-        result = requests.get(serverAddress + "advice/getnew")
+        result = requests.get(serverAddress + "advice")
 
         for advice in result.json():
             localPath = os.path.join(downloadsFolder, os.path.basename(advice["filename"]))
@@ -45,14 +46,17 @@ def RefreshAdvice():
 
                 print "ALREADY CACHED", localPath
 
-		subprocess.call(["python", "pipsta.py", localPath])
+		
            
         sleep(10)
 
-
-#RefreshAdvice();
-
 try:
+
+        # Check the server on a separate thread
+	serverPollThread = threading.Thread(name="AdviceServer", target=RefreshAdvice)
+	serverPollThread.setDaemon(True)
+	serverPollThread.start()
+	
         #initialising GPIO + pins + states
         GPIO.setmode (GPIO.BOARD)
         GPIO.setup (gBut, GPIO.IN, GPIO.PUD_UP)
@@ -61,14 +65,19 @@ try:
         while True:
                 but = GPIO.input (gBut)
                 if but != butState:
-                        if but == 0:
-                                #if button is pressed
-                                print "off"
-
-                        else:
-                                        
+                        if but == 1:                            
                                 print "printing image"
-                                sleep(1)
+
+                                if os.listdir(downloadsFolder):
+                                    thisAdvice = random.choice(os.listdir(downloadsFolder))
+                                    localPath = os.path.join(downloadsFolder, thisAdvice)
+			
+                                    subprocess.call(["python", "pipsta.py", localPath])
+
+                                else:
+                                    print "No images to print"
+                                
+                                sleep(2)
                                 
                 butState = but
                 sleep (0.1)
