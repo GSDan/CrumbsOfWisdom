@@ -2,14 +2,17 @@ import os
 import random
 import errno
 import requests
+import picamera
 import threading
 import subprocess
+from PIL import Image, ImageEnhance
 import RPi.GPIO as GPIO
 from time import sleep, time
 
 # GPIO pins
 gLight = 16 # Light sensor
-gCamBut = 15 # Button
+gCamBut = 15 # Take photo button
+gSkipBut = 22 # Skip question button
 gLED = 7 # LED
 
 downloadsFolder = "./QuestionFiles"
@@ -19,8 +22,47 @@ pollIntervalMinutes = 5
 currentLightLevel = 0;
 closedLightLevel = 100;
 lastQuestionId = "";
+lastPlayed = "";
 canTakePhoto = False;
 hasTakenPhoto = False;
+tempImageFile = "image.jpg"
+
+def TakeAndCropPhoto():
+	camera = picamera.PiCamera()
+	camera.sharpness = 30
+	camera.contrast = 100
+	camera.saturation = -100
+	camera.hflip = True
+	camera.vflip = True
+	camera.capture(tempImageFile)
+	
+	subprocess.call(['mplayer', "camera-snap.wav"])
+
+	# Crop image& up the contrast
+	original = Image.open(tempImageFile)
+	contrast = ImageEnhance.Contrast(original)
+	original = contrast.enhance(3)
+	width, height = original.size 
+	left = int(width/3.3)
+	top = height/6
+	right = int(width - width/3.3)
+	bottom = height - height/6
+	original.crop((left, top, right, bottom)).save(tempImageFile)
+
+
+def UploadImage():
+	print "Uploading " + tempImageFile
+	with open(tempImageFile, 'rb') as payload:
+		files = {"image" : payload}
+		data = {"questionId" : lastQuestionId }
+		res = requests.post(serverAddress + "advice/upload", files = files, data = data)
+		
+		if res.status_code == 200:
+			print "UPLOAD RETURN: " + str(res.json())
+			return True
+		else:
+			print "Upload failed!!"
+			return False
 
 # Checks for new questions on the server
 # If a question doesn't exist locally, download it
@@ -31,7 +73,7 @@ def RefreshQuestions():
 		res = requests.get(serverAddress + "question/getnew")
 
 		for question in res.json():
-			localPath = os.path.join(downloadsFolder, os.path.basename(question["filename"]))
+			localPath = os.path.join(downloadsFolder, os.path.basename(question["id"] + ".mp3"))
 			
 			# Download the file if it doesn't exist locally
 			if not os.path.isfile(localPath):
@@ -88,29 +130,45 @@ def CheckLightLevels():
 		# Update the LED - light if there are files available
 		GPIO.output(gLED, len(os.listdir(downloadsFolder)));
 		
-# Checks whether or not the button has been pressed
-# If it has been and if permitted, take a photo and upload it
+# Checks whether or not the buttons have been pressed
+# If gCamBut has been and if permitted, take a photo and upload it
+# If gSkipBut has been pressed, skip the last played question and play the next if able
 def CheckButtonStatus():
 	global canTakePhoto
 	global hasTakenPhoto
 
 	GPIO.setup (gCamBut, GPIO.IN, GPIO.PUD_UP)
-	butState = 1
-	
+	GPIO.setup (gSkipBut, GPIO.IN, GPIO.PUD_UP)
+	camButPrevState = 1
+	skipButPrevState = 1
+
 	while True:
-		but = GPIO.input (gCamBut)
-		if but != butState:
-			if but == 1:
+		camButCurrState = GPIO.input (gCamBut)
+		if camButCurrState != camButPrevState:
+			if camButCurrState == 1:
 
 				if canTakePhoto and not hasTakenPhoto:
-					print "printing image"
-					hasTakenPhoto = True
+					print "Taking photo"
+					TakeAndCropPhoto()
+					
+					success = UploadImage()
+
+					if success:
+						print "Deleting file:", lastPlayed
+						os.remove(lastPlayed)
+
 				else:
 					print "Can't take a photo right now"
-				
-				sleep(2)
 
-		butState = but
+		skipButCurrState = GPIO.input (gSkipBut)
+
+		if skipButCurrState != skipButPrevState:
+			if skipButCurrState == 1:
+				print "Skip button!" #TODO
+
+		camButPrevState = camButCurrState
+		skipButPrevState = skipButCurrState
+
 		sleep (0.1)
 
 try:
@@ -158,8 +216,10 @@ try:
 			hasTakenPhoto = False
 			hasPlayed = True
 			thisQ = random.choice(os.listdir(downloadsFolder))
-			localPath = os.path.join(downloadsFolder, thisQ)
-			subprocess.call(['mplayer', localPath])
+			lastPlayed = os.path.join(downloadsFolder, thisQ)
+			lastQuestionId = os.path.splitext(thisQ)[0]
+
+			subprocess.call(['mplayer', lastPlayed])
 	
 finally:
 	print "Finish"
