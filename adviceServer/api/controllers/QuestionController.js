@@ -68,6 +68,23 @@ module.exports = {
 			return res.json(200, questions);
 		});
 
+	},
+	
+	// Mark the given question as answered without uploading advice
+	dismiss : function(req, res) {
+
+		Question.update({ "id" : req.param("questionId")}, {"answered" : true})
+		.exec(function (err, updated)
+		{
+			if(err)
+			{
+				sails.log.error("question/dismiss error: " + JSON.stringify(err))
+				return res.json(401, {"err": JSON.stringify(err)});
+			}
+
+			return res.json(200, updated);
+		})
+
 	}
 };
 
