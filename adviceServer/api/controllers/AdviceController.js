@@ -46,8 +46,11 @@ module.exports = {
 			    		"fd" : fileAdd
 			    	}
 
-			    	return res.json(result);
-
+			    	Question.update({ "id" : req.param("questionId")}, {"answered" : true})
+			    	.exec(function (err)
+			    	{
+			    		return res.json(result);
+			    	})
 				});
 			});
 		});
