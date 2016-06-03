@@ -164,12 +164,35 @@ def CheckButtonStatus():
 
 		if skipButCurrState != skipButPrevState:
 			if skipButCurrState == 1:
-				print "Skip button!" #TODO
+				print "Skip button!"
+
+				data = {"questionId" : lastQuestionId }
+				res = requests.post(serverAddress + "question/dismiss", data = data)
+				os.remove(lastPlayed)
+
+				if os.listdir(downloadsFolder):
+					
+				else:
+					print "No more messages"
 
 		camButPrevState = camButCurrState
 		skipButPrevState = skipButCurrState
 
 		sleep (0.1)
+
+# Play a random downloaded question audio file
+def PlayQuestion():
+	global canTakePhoto
+	global hasTakenPhoto
+	global lastPlayed
+	global lastQuestionId
+
+	canTakePhoto = False
+	hasTakenPhoto = False
+	thisQ = random.choice(os.listdir(downloadsFolder))
+	lastPlayed = os.path.join(downloadsFolder, thisQ)
+	lastQuestionId = os.path.splitext(thisQ)[0]
+	subprocess.call(['mplayer', lastPlayed])
 
 try:
 	GPIO.setmode(GPIO.BOARD)
@@ -212,14 +235,8 @@ try:
 			hasPlayed = False
 
 		if tinOpen and not hasPlayed and os.listdir(downloadsFolder):
-			canTakePhoto = False
-			hasTakenPhoto = False
 			hasPlayed = True
-			thisQ = random.choice(os.listdir(downloadsFolder))
-			lastPlayed = os.path.join(downloadsFolder, thisQ)
-			lastQuestionId = os.path.splitext(thisQ)[0]
-
-			subprocess.call(['mplayer', lastPlayed])
+			PlayQuestion()
 	
 finally:
 	print "Finish"
