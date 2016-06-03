@@ -48,7 +48,7 @@ def RefreshAdvice():
 
 		
            
-        sleep(10)
+        sleep(60)
 
 try:
 
