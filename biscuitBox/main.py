@@ -17,7 +17,7 @@ gLED = 7 # LED
 
 downloadsFolder = "./QuestionFiles"
 serverAddress = "http://46.101.42.140:1337/"
-pollIntervalMinutes = 5
+pollIntervalMinutes = 1
 
 currentLightLevel = 0;
 closedLightLevel = 100;
@@ -171,7 +171,7 @@ def CheckButtonStatus():
 				os.remove(lastPlayed)
 
 				if os.listdir(downloadsFolder):
-					
+					PlayQuestion()
 				else:
 					print "No more messages"
 
