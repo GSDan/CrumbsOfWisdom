@@ -52,6 +52,11 @@ def TakeAndCropPhoto():
 	bottom = height - height/6
 	original.crop((left, top, right, bottom)).save(tempImageFile)
 
+def Error(e):
+	print e
+	subprocess.call(['mplayer', thisDir + "/error.mp3"])
+	GPIO.cleanup()
+	os._exit()
 
 def UploadImage():
 	print "Uploading " + tempImageFile
@@ -63,12 +68,13 @@ def UploadImage():
 			
 			if res.status_code == 200:
 				print "UPLOAD RETURN: " + str(res.json())
+				subprocess.call(['mplayer', thisDir + "/success.mp3"])
 				return True
 			else:
 				print "Upload failed!!"
 				return False
 	except requests.exceptions.RequestException as e:    # This is the correct syntax
-		print e
+		Error();
 		return False
 
 # Checks for new questions on the server
@@ -143,8 +149,7 @@ def CheckLightLevels():
 			# Update the LED - light if there are files available
 			GPIO.output(gLED, len(os.listdir(downloadsFolder)));
 	finally:
-		GPIO.cleanup()
-		os._exit()
+		Error();
 		
 # Checks whether or not the buttons have been pressed
 # If gCamBut has been and if permitted, take a photo and upload it
@@ -191,14 +196,14 @@ def CheckButtonStatus():
 						PlayQuestion()
 					else:
 						print "No more messages"
+						subprocess.call(['mplayer', thisDir + "/noQuestions.mp3"])
 
 			camButPrevState = camButCurrState
 			skipButPrevState = skipButCurrState
 
 			sleep (0.1)
 	finally:
-		GPIO.cleanup()
-		os._exit()
+		Error();
 
 # Play a random downloaded question audio file
 def PlayQuestion():
@@ -213,6 +218,7 @@ def PlayQuestion():
 	lastPlayed = os.path.join(downloadsFolder, thisQ)
 	lastQuestionId = os.path.splitext(thisQ)[0]
 	subprocess.call(['mplayer', lastPlayed])
+	subprocess.call(['mplayer', thisDir + "/takePhoto.mp3"])
 
 try:
 	GPIO.setmode(GPIO.BOARD)
@@ -244,6 +250,8 @@ try:
 	# Only play the message again after the box has been closed
 	hasPlayed = False
 	
+	subprocess.call(['mplayer', thisDir + "/start.mp3"])
+
 	while True:
 		sleep(1.5)
 

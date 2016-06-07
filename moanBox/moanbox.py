@@ -12,7 +12,8 @@ gLed = 10	# LED
 
 # recordings
 rec_num = 0
-recordingsFolder = "./Recordings"
+thisDir = os.path.dirname(os.path.abspath(__file__))
+recordingsFolder = thisDir + "/Recordings"
 serverAddress = "http://46.101.42.140:1337/"
 
 # commands
@@ -43,6 +44,7 @@ def uploadQuestion(localPath):
 		
 		if res.status_code == 200:
 			print "UPLPOAD RETURN: " + str(res.json())
+			subprocess.call(['mplayer', thisDir + "/success.mp3"])
 			return True
 		else:
 			print "Upload failed!!"
@@ -119,6 +121,7 @@ try:
 					# stop the recording and process the audio file
 					process_recording(pid)
 				else:
+					subprocess.call(['mplayer', thisDir + "/start.mp3"])
 					GPIO.output(gLed, GPIO.HIGH)
 					print "on"
 					# start recording
@@ -129,3 +132,4 @@ try:
 	
 finally:
 	GPIO.cleanup()
+	subprocess.call(['mplayer', thisDir + "/error.mp3"])
