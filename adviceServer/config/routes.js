@@ -47,5 +47,7 @@ module.exports.routes = {
   ***************************************************************************/
 
   'POST /question': {response: 'notFound'},
-  'POST /advice': {response: 'notFound'}
+  'POST /advice': {response: 'notFound'},
+  'PUT /question': {response: 'notFound'},
+  'PUT /advice': {response: 'notFound'}
 };
