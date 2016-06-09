@@ -3,6 +3,7 @@ import random
 import errno
 import requests
 import picamera
+import sys
 import threading
 import subprocess
 from PIL import Image, ImageEnhance
@@ -35,8 +36,7 @@ def TakeAndCropPhoto():
 	camera.sharpness = 30
 	camera.contrast = 100
 	camera.saturation = -100
-	camera.hflip = True
-	camera.vflip = True
+	camera.rotation = 90
 	camera.capture(tempImageFile)
 	
 	subprocess.call(['mplayer', thisDir + "/camera-snap.wav"])
@@ -45,11 +45,12 @@ def TakeAndCropPhoto():
 	original = Image.open(tempImageFile)
 	contrast = ImageEnhance.Contrast(original)
 	original = contrast.enhance(3)
+
 	width, height = original.size 
-	left = int(width/3.3)
-	top = height/6
-	right = int(width - width/3.3)
-	bottom = height - height/6
+	left = int(width/3.8)
+	top = int(height/12)
+	right = int(width - width/11)
+	bottom = int(height)
 	original.crop((left, top, right, bottom)).save(tempImageFile)
 
 def Error(e):
@@ -74,7 +75,7 @@ def UploadImage():
 				print "Upload failed!!"
 				return False
 	except requests.exceptions.RequestException as e:    # This is the correct syntax
-		Error();
+		Error(e);
 		return False
 
 # Checks for new questions on the server
@@ -86,6 +87,8 @@ def RefreshQuestions():
 
 		try:
 			res = requests.get(serverAddress + "question/getnew")
+
+			RemoveUnwantedFiles(res.json())
 
 			for question in res.json():
 				localPath = os.path.join(downloadsFolder, os.path.basename(question["id"] + ".mp3"))
@@ -111,6 +114,20 @@ def RefreshQuestions():
 			print e
 
 		sleep(60 * pollIntervalMinutes)
+
+def RemoveUnwantedFiles(questions):
+	for fn in os.listdir(downloadsFolder):
+		found = False
+		thisPath = os.path.join(downloadsFolder, fn)
+		print "Checking downloaded file", thisPath
+		for question in questions:
+			localPath = os.path.join(downloadsFolder, os.path.basename(question["id"] + ".mp3"))
+			if localPath == thisPath:
+				found = True
+				break
+		if not found:
+			print "Deleting", thisPath
+			os.remove(thisPath)
 
 # Checks the current light level and reports the average
 # readings over a second long window. 
@@ -149,7 +166,7 @@ def CheckLightLevels():
 			# Update the LED - light if there are files available
 			GPIO.output(gLED, len(os.listdir(downloadsFolder)));
 	finally:
-		Error();
+		Error("Light level err");
 		
 # Checks whether or not the buttons have been pressed
 # If gCamBut has been and if permitted, take a photo and upload it
@@ -163,47 +180,42 @@ def CheckButtonStatus():
 		GPIO.setup (gSkipBut, GPIO.IN, GPIO.PUD_UP)
 		camButPrevState = 1
 		skipButPrevState = 1
-
+		
 		while True:
 			camButCurrState = GPIO.input (gCamBut)
 			if camButCurrState != camButPrevState:
 				if camButCurrState == 1:
-
 					if canTakePhoto and not hasTakenPhoto:
 						print "Taking photo"
 						TakeAndCropPhoto()
 						
 						success = UploadImage()
-
 						if success:
 							print "Deleting file:", lastPlayed
 							os.remove(lastPlayed)
-
+							lastQuestionId = ""
 					else:
 						print "Can't take a photo right now"
-
 			skipButCurrState = GPIO.input (gSkipBut)
-
 			if skipButCurrState != skipButPrevState:
 				if skipButCurrState == 1:
 					print "Skip button!"
-
-					data = {"questionId" : lastQuestionId }
-					res = requests.post(serverAddress + "question/dismiss", data = data)
-					os.remove(lastPlayed)
-
-					if os.listdir(downloadsFolder):
-						PlayQuestion()
+					if lastQuestionId != "":
+						data = {"questionId" : lastQuestionId }
+						res = requests.post(serverAddress + "question/dismiss", data = data)
+						os.remove(lastPlayed)
+						if os.listdir(downloadsFolder):
+							PlayQuestion()
+						else:
+							print "No more messages"
+							subprocess.call(['mplayer', thisDir + "/noQuestions.mp3"])
 					else:
-						print "No more messages"
 						subprocess.call(['mplayer', thisDir + "/noQuestions.mp3"])
-
 			camButPrevState = camButCurrState
 			skipButPrevState = skipButCurrState
-
 			sleep (0.1)
 	finally:
-		Error();
+		Error(sys.exc_info()[0])
 
 # Play a random downloaded question audio file
 def PlayQuestion():
@@ -229,6 +241,10 @@ try:
 	except OSError as exception:
 		if exception.errno != errno.EEXIST:
 			raise
+
+	print "Setting volume to 90%"
+	subprocess.call(["amixer", "cset", "numid=1", "--", "90%"])
+
 
 	# CREATE ALL THE THREADS!!
 	# Check the server on a separate thread

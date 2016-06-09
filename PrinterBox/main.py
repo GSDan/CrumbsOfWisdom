@@ -13,6 +13,20 @@ gBut = 7       #button
 downloadsFolder = "./AdviceFiles"
 serverAddress = "http://46.101.42.140:1337/"
 
+def RemoveUnwantedFiles(advice):
+    for fn in os.listdir(downloadsFolder):
+        found = False
+        thisPath = os.path.join(downloadsFolder, fn)
+        print "Checking downloaded file", thisPath
+        for ad in advice:
+            localPath = os.path.join(downloadsFolder, os.path.basename(ad["filename"]))
+            if localPath == thisPath:
+                found = True
+                break
+        if not found:
+            print "Deleting", thisPath
+            os.remove(thisPath)
+
 def RefreshAdvice():
     #Make the downloads folder if doesn't exist
     try:
@@ -24,6 +38,8 @@ def RefreshAdvice():
     while True:
         result = requests.get(serverAddress + "advice")
 
+        RemoveUnwantedFiles(result.json())
+
         for advice in result.json():
             localPath = os.path.join(downloadsFolder, os.path.basename(advice["filename"]))
 
@@ -34,21 +50,16 @@ def RefreshAdvice():
 
                 print "DOWNLOADING:", advice["filename"]
 
-		with open(localPath, 'wb') as f:
+                with open(localPath, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=1024): 
                         if chunk: # filter out keep-alive new chunks
                             f.write(chunk)
                             f.flush()
-				
-		print "FINISHED:", localPath
-
-	    else:
-
+                    print "FINISHED:", localPath
+            else:
                 print "ALREADY CACHED", localPath
 
-		
-           
-        sleep(60)
+        sleep(30)
 
 try:
 
