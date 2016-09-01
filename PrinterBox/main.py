@@ -11,7 +11,7 @@ from time import sleep
 gBut = 7       #button
 
 downloadsFolder = "./AdviceFiles"
-serverAddress = "http://46.101.42.140:1337/"
+serverAddress = "http://138.68.133.209:1337/"
 
 def RefreshAdvice():
     #Make the downloads folder if doesn't exist
@@ -22,31 +22,36 @@ def RefreshAdvice():
 		    raise
 
     while True:
-        result = requests.get(serverAddress + "advice")
+        
+	try:
+		print "Connecting"
+		result = requests.get(serverAddress + "advice")
 
-        for advice in result.json():
-            localPath = os.path.join(downloadsFolder, os.path.basename(advice["filename"]))
+		print "Connection result: " + str(result.status_code)
 
-            #Download the file if it doesn't exist locally
-            if not os.path.isfile(localPath):
-                params = {"fd" : advice["filename"]}
-                r = requests.get(serverAddress + "file/download", params=params, stream=True)
+        	for advice in result.json():
+            		localPath = os.path.join(downloadsFolder, os.path.basename(advice["filename"]))
 
-                print "DOWNLOADING:", advice["filename"]
+            		#Download the file if it doesn't exist locally
+            		if not os.path.isfile(localPath):
+                		params = {"fd" : advice["filename"]}
+                		r = requests.get(serverAddress + "file/download", params=params, stream=True)
 
-		with open(localPath, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=1024): 
-                        if chunk: # filter out keep-alive new chunks
-                            f.write(chunk)
-                            f.flush()
+                		print "DOWNLOADING:", advice["filename"]
+
+				with open(localPath, 'wb') as f:
+                    			for chunk in r.iter_content(chunk_size=1024): 
+                        			if chunk: # filter out keep-alive new chunks
+                            				f.write(chunk)
+                            				f.flush()
 				
-		print "FINISHED:", localPath
+				print "FINISHED:", localPath
 
-	    else:
+	    		else:
+                		print "ALREADY CACHED", localPath
 
-                print "ALREADY CACHED", localPath
-
-		
+	except requests.exceptions.RequestException as e:
+		print e
            
         sleep(60)
 
