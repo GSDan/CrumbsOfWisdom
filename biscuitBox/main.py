@@ -47,10 +47,10 @@ def TakeAndCropPhoto():
 	original = contrast.enhance(3)
 
 	width, height = original.size 
-	left = int(width/3.8)
+	left = int(width/3.6)
 	top = int(height/12)
-	right = int(width - width/11)
-	bottom = int(height)
+	right = int(width - width/7)
+	bottom = int(height - height/12)
 	original.crop((left, top, right, bottom)).save(tempImageFile)
 
 def Error(e):
@@ -176,7 +176,6 @@ def CheckButtonStatus():
 	global hasTakenPhoto
 	global lastQuestionId
 
-<<<<<<< HEAD
 	try:
 		GPIO.setup (gCamBut, GPIO.IN, GPIO.PUD_UP)
 		GPIO.setup (gSkipBut, GPIO.IN, GPIO.PUD_UP)

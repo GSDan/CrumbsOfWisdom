@@ -12,19 +12,18 @@ camera.contrast = 100
 camera.saturation = -100
 camera.rotation = 90
 
-camera.capture('image.jpg')
+camera.capture('original.jpg')
 
-original = Image.open("image.jpg")
+original = Image.open("original.jpg")
 contrast = ImageEnhance.Contrast(original)
 original = contrast.enhance(3)
 
 width, height = original.size   # Get dimensions
-left = int(width/3.8)
+left = int(width/3.6)
 top = int(height/12)
-right = int(width - width/11)
-bottom = int(height)
+right = int(width - width/7)
+bottom = int(height - height/12)
 original.crop((left, top, right, bottom)).save("image.jpg")
-#original.save("image.jpg")
 
 thisDir = os.path.dirname(os.path.abspath(__file__))
 downloadsFolder = thisDir + "/QuestionFiles"
