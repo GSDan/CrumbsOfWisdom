@@ -121,7 +121,7 @@ def RemoveUnwantedFiles(questions):
 		thisPath = os.path.join(downloadsFolder, fn)
 		print "Checking downloaded file", thisPath
 		for question in questions:
-			localPath = os.path.join(downloadsFolder, os.path.basename(question["id"] + ".mp3"))
+			localPath = os.path.join(downloadsFolder, os.path.basename(str(question["id"]) + ".mp3"))
 			if localPath == thisPath:
 				found = True
 				break
