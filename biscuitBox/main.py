@@ -18,7 +18,7 @@ gLED = 7 # LED
 
 thisDir = os.path.dirname(os.path.abspath(__file__))
 downloadsFolder = thisDir + "/QuestionFiles"
-serverAddress = "http://46.101.42.140:1337/"
+serverAddress = "http://138.68.133.209:1337/"
 pollIntervalMinutes = 1
 
 currentLightLevel = 0;

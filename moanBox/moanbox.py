@@ -15,7 +15,7 @@ gLed = 10	# LED
 rec_num = 0
 thisDir = os.path.dirname(os.path.abspath(__file__))
 recordingsFolder = thisDir + "/Recordings"
-serverAddress = "http://46.101.42.140:1337/"
+serverAddress = "http://138.68.133.209:1337/"
 
 # commands
 com_record = "arecord --duration=30 -f dat -r 48000 -D plughw:0,0 out.wav"
