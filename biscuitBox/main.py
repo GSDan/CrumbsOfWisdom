@@ -91,7 +91,7 @@ def RefreshQuestions():
 			RemoveUnwantedFiles(res.json())
 
 			for question in res.json():
-				localPath = os.path.join(downloadsFolder, os.path.basename(question["id"] + ".mp3"))
+				localPath = os.path.join(downloadsFolder, os.path.basename(str(question["id"]) + ".mp3"))
 				
 				# Download the file if it doesn't exist locally
 				if not os.path.isfile(localPath):
