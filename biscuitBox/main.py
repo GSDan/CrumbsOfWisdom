@@ -174,7 +174,9 @@ def CheckLightLevels():
 def CheckButtonStatus():
 	global canTakePhoto
 	global hasTakenPhoto
+	global lastQuestionId
 
+<<<<<<< HEAD
 	try:
 		GPIO.setup (gCamBut, GPIO.IN, GPIO.PUD_UP)
 		GPIO.setup (gSkipBut, GPIO.IN, GPIO.PUD_UP)
@@ -209,8 +211,6 @@ def CheckButtonStatus():
 						else:
 							print "No more messages"
 							subprocess.call(['mplayer', thisDir + "/noQuestions.mp3"])
-					else:
-						subprocess.call(['mplayer', thisDir + "/noQuestions.mp3"])
 			camButPrevState = camButCurrState
 			skipButPrevState = skipButCurrState
 			sleep (0.1)

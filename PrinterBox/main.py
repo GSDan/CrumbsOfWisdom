@@ -11,7 +11,7 @@ from time import sleep
 gBut = 7       #button
 
 downloadsFolder = "./AdviceFiles"
-serverAddress = "http://46.101.42.140:1337/"
+serverAddress = "http://138.68.133.209:1337/"
 
 def RemoveUnwantedFiles(advice):
     for fn in os.listdir(downloadsFolder):
@@ -36,19 +36,20 @@ def RefreshAdvice():
 		    raise
 
     while True:
-        result = requests.get(serverAddress + "advice")
+        
+	try:
+		print "Connecting"
+		result = requests.get(serverAddress + "advice")
+        print "Connection result: " + str(result.status_code)
 
         RemoveUnwantedFiles(result.json())
 
         for advice in result.json():
-            localPath = os.path.join(downloadsFolder, os.path.basename(advice["filename"]))
-
-            #Download the file if it doesn't exist locally
-            if not os.path.isfile(localPath):
-                params = {"fd" : advice["filename"]}
-                r = requests.get(serverAddress + "file/download", params=params, stream=True)
-
-                print "DOWNLOADING:", advice["filename"]
+        	localPath = os.path.join(downloadsFolder, os.path.basename(advice["filename"]))
+       		#Download the file if it doesn't exist locally
+       		if not os.path.isfile(localPath):
+           		params = {"fd" : advice["filename"]}
+           		r = requests.get(serverAddress + "file/download", params=params, stream=True)
 
                 with open(localPath, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=1024): 
@@ -59,7 +60,10 @@ def RefreshAdvice():
             else:
                 print "ALREADY CACHED", localPath
 
-        sleep(30)
+	except requests.exceptions.RequestException as e:
+		print e
+           
+    sleep(60)
 
 try:
 
