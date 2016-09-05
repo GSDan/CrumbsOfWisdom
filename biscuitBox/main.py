@@ -31,12 +31,15 @@ tempImageFile = thisDir + "/image.jpg"
 
 lock = threading.Lock()
 
+camera = picamera.PiCamera()
+camera.sharpness = 30
+camera.contrast = 100
+camera.saturation = -100
+camera.rotation = 90
+
 def TakeAndCropPhoto():
-	camera = picamera.PiCamera()
-	camera.sharpness = 30
-	camera.contrast = 100
-	camera.saturation = -100
-	camera.rotation = 90
+	global camera
+	
 	camera.capture(tempImageFile)
 	
 	subprocess.call(['mplayer', thisDir + "/camera-snap.wav"])
@@ -56,8 +59,8 @@ def TakeAndCropPhoto():
 def Error(e):
 	print e
 	subprocess.call(['mplayer', thisDir + "/error.mp3"])
-	GPIO.cleanup()
-	os._exit()
+	#GPIO.cleanup()
+	#os._exit()
 
 def UploadImage():
 	print "Uploading " + tempImageFile
@@ -127,7 +130,10 @@ def RemoveUnwantedFiles(questions):
 				break
 		if not found:
 			print "Deleting", thisPath
-			os.remove(thisPath)
+			try:
+				os.remove(lastPlayed)
+			except OSError:
+				pass
 
 # Checks the current light level and reports the average
 # readings over a second long window. 
@@ -175,25 +181,28 @@ def CheckButtonStatus():
 	global canTakePhoto
 	global hasTakenPhoto
 	global lastQuestionId
-
-	try:
-		GPIO.setup (gCamBut, GPIO.IN, GPIO.PUD_UP)
-		GPIO.setup (gSkipBut, GPIO.IN, GPIO.PUD_UP)
-		camButPrevState = 1
-		skipButPrevState = 1
-		
-		while True:
+	
+	GPIO.setup (gCamBut, GPIO.IN, GPIO.PUD_UP)
+	GPIO.setup (gSkipBut, GPIO.IN, GPIO.PUD_UP)
+	camButPrevState = 1
+	skipButPrevState = 1
+	
+	while True:
+		try:
 			camButCurrState = GPIO.input (gCamBut)
 			if camButCurrState != camButPrevState:
 				if camButCurrState == 1:
 					if canTakePhoto and not hasTakenPhoto:
 						print "Taking photo"
 						TakeAndCropPhoto()
-						
+						hasTakenPhoto = True
 						success = UploadImage()
 						if success:
 							print "Deleting file:", lastPlayed
-							os.remove(lastPlayed)
+							try:
+								os.remove(lastPlayed)
+							except OSError:
+								pass
 							lastQuestionId = ""
 					else:
 						print "Can't take a photo right now"
@@ -211,10 +220,10 @@ def CheckButtonStatus():
 							print "No more messages"
 							subprocess.call(['mplayer', thisDir + "/noQuestions.mp3"])
 			camButPrevState = camButCurrState
-			skipButPrevState = skipButCurrState
-			sleep (0.1)
-	finally:
-		Error(sys.exc_info()[0])
+			skipButPrevState = skipButCurrState		
+		except Exception as e:
+			print str(e)
+		sleep (0.1)
 
 # Play a random downloaded question audio file
 def PlayQuestion():
