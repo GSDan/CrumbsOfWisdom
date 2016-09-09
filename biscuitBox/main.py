@@ -177,53 +177,40 @@ def CheckLightLevels():
 # Checks whether or not the buttons have been pressed
 # If gCamBut has been and if permitted, take a photo and upload it
 # If gSkipBut has been pressed, skip the last played question and play the next if able
-def CheckButtonStatus():
+def CheckButtonStatus(pressedPin):
 	global canTakePhoto
 	global hasTakenPhoto
 	global lastQuestionId
 	
-	GPIO.setup (gCamBut, GPIO.IN, GPIO.PUD_UP)
-	GPIO.setup (gSkipBut, GPIO.IN, GPIO.PUD_UP)
-	camButPrevState = 1
-	skipButPrevState = 1
-	
-	while True:
-		try:
-			camButCurrState = GPIO.input (gCamBut)
-			if camButCurrState != camButPrevState:
-				if camButCurrState == 1:
-					if canTakePhoto and not hasTakenPhoto:
-						print "Taking photo"
-						TakeAndCropPhoto()
-						hasTakenPhoto = True
-						success = UploadImage()
-						if success:
-							print "Deleting file:", lastPlayed
-							try:
-								os.remove(lastPlayed)
-							except OSError:
-								pass
-							lastQuestionId = ""
-					else:
-						print "Can't take a photo right now"
-			skipButCurrState = GPIO.input (gSkipBut)
-			if skipButCurrState != skipButPrevState:
-				if skipButCurrState == 1:
-					print "Skip button!"
-					if lastQuestionId != "":
-						data = {"questionId" : lastQuestionId }
-						res = requests.post(serverAddress + "question/dismiss", data = data)
+	try:
+		camButCurrState = GPIO.input (gCamBut)
+		if pressedPin == gCamBut:
+			if canTakePhoto and not hasTakenPhoto:
+				print "Taking photo"
+				TakeAndCropPhoto()
+				hasTakenPhoto = True
+				success = UploadImage()
+				if success:
+					print "Deleting file:", lastPlayed
+					try:
 						os.remove(lastPlayed)
-						if os.listdir(downloadsFolder):
-							PlayQuestion()
-						else:
-							print "No more messages"
-							subprocess.call(['mplayer', thisDir + "/noQuestions.mp3"])
-			camButPrevState = camButCurrState
-			skipButPrevState = skipButCurrState		
-		except Exception as e:
-			print str(e)
-		sleep (0.1)
+					except OSError:
+						pass
+					lastQuestionId = ""
+			else:
+				print "Can't take a photo right now"
+		elif skipButCurrState == gSkipBut:
+				print "Skip button!"
+				if lastQuestionId != "":
+					data = {"questionId" : lastQuestionId }
+					res = requests.post(serverAddress + "question/dismiss", data = data)
+					os.remove(lastPlayed)
+					if os.listdir(downloadsFolder):
+						PlayQuestion()
+					else:
+						print "No more messages"
+	except Exception as e:
+		print str(e)
 
 # Play a random downloaded question audio file
 def PlayQuestion():
@@ -265,10 +252,13 @@ try:
 	lightLevelThread.setDaemon(True)
 	lightLevelThread.start()
 
-	# Check the take photo button
-	buttonThread = threading.Thread(name="biscuitButton", target=CheckButtonStatus)
-	buttonThread.setDaemon(True)
-	buttonThread.start()
+	GPIO.setup (gCamBut, GPIO.IN, GPIO.PUD_UP)
+	GPIO.add_event_detect(gCamBut, GPIO.RISING)
+	GPIO.add_event_callback(gCamBut, CheckButtonStatus)
+
+	GPIO.setup (gSkipBut, GPIO.IN, GPIO.PUD_UP)
+	GPIO.add_event_detect(gSkipBut, GPIO.RISING)
+	GPIO.add_event_callback(gSkipBut, CheckButtonStatus)
 	
 	# If the light level shows the box is open, play an audio message
 	# Only play the message again after the box has been closed
